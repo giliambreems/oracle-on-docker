@@ -1,0 +1,30 @@
+services:
+    oraclefree:   # This is the name of the service, you can rename this if needed
+        image: ghcr.io/gvenzl/oracle-free:full-faststart  # The docker image for this service
+        # image: ghcr.io/gvenzl/oracle-free:latest
+        # image: ghcr.io/gvenzl/oracle-free:23.26.3
+        hostname: ORACLEFREE
+
+        # The port mapping of the host port to the container port.
+        # For connecting from outside the container
+        ports:
+            - 1522:1521
+        volumes:
+            - ora_db_vol26ai:/opt/oracle/oradata
+        networks:
+            - ora_app_network
+        healthcheck:
+            test: [ "CMD", "/opt/oracle/healthcheck.sh" ]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+        environment:
+            - ORACLE_PASSWORD=${ORACLE_PASSWORD}
+            - ORACLE_CHARACTERSET=AL32UTF8
+
+volumes:
+    ora_db_vol26ai:
+        name: ora_db_vol26ai
+
+networks:
+    ora_app_network:
