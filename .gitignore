@@ -1,0 +1,9 @@
+# Ignore Mac system files
+**/.DS_Store
+
+# Temporary ignore Oracle APEX and export directories for now
+oracle-26ai/apex/
+oracle-26ai/apex-images/
+oracle-26ai/export/
+oracle-26ai/export/
+oracle-26ai/scripts/
