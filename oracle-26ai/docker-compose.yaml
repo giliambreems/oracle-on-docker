@@ -1,14 +1,8 @@
 services:
-    oraclefree:   # This is the name of the service, you can rename this if needed
-        image: ghcr.io/gvenzl/oracle-free:full-faststart  # The docker image for this service
-        # image: ghcr.io/gvenzl/oracle-free:latest
-        # image: ghcr.io/gvenzl/oracle-free:23.26.3
-        hostname: ORACLEFREE
-
-        # The port mapping of the host port to the container port.
-        # For connecting from outside the container
+    oraclefree:
+        image: ghcr.io/gvenzl/oracle-free:full-faststart
         ports:
-            - 1522:1521
+            - 1521:1521
         volumes:
             - ora_db_vol26ai:/opt/oracle/oradata
         networks:
@@ -20,11 +14,28 @@ services:
             retries: 10
         environment:
             - ORACLE_PASSWORD=${ORACLE_PASSWORD}
-            - ORACLE_CHARACTERSET=AL32UTF8
+
+    ords:
+        hostname: ords-node
+        image: container-registry.oracle.com/database/ords:26.3.0
+        environment:
+            - CONN_STRING=${CONN_STRING}
+            - ORACLE_PWD=${ORACLE_PWD}
+            - ORACLE_USER_PWD=${ORACLE_PWD}
+        volumes:
+            - ords_config:/etc/ords/config
+            - ./apex:/opt/oracle/apex
+        ports:
+            - ${HOST_PORT}:8080
+        depends_on:
+            oraclefree:
+                condition: service_healthy
+        networks:
+            - ora_app_network
 
 volumes:
     ora_db_vol26ai:
-        name: ora_db_vol26ai
+    ords_config:
 
 networks:
     ora_app_network:
