@@ -1,8 +1,10 @@
 services:
     oraclefree:
-        image: ghcr.io/gvenzl/oracle-free:full-faststart
+        # image: ghcr.io/gvenzl/oracle-free:full-faststart  # The docker image for this service
+        # image: ghcr.io/gvenzl/oracle-free:latest
+        image: ghcr.io/gvenzl/oracle-free:23.26.3  # The docker image for this service
         ports:
-            - 1521:1521
+            - ${DB_HOST_PORT}:1521
         volumes:
             - ora_db_vol26ai:/opt/oracle/oradata
         networks:
@@ -12,30 +14,49 @@ services:
             interval: 10s
             timeout: 5s
             retries: 10
+            start_period: 5s
+            start_interval: 5s
         environment:
-            - ORACLE_PASSWORD=${ORACLE_PASSWORD}
+            ORACLE_CHARACTERSET: AL32UTF8
+            ORACLE_PASSWORD: ${ORACLE_PASSWORD:?Please provide a password for the Oracle DBA accounts}
+            APP_USER: demouser
+            APP_USER_PASSWORD: ${APP_USER_PASSWORD:?Please provide a password for the application user}
 
     ords:
         hostname: ords-node
         image: container-registry.oracle.com/database/ords:26.3.0
+        # image: container-registry.oracle.com/database/ords:latest
         environment:
-            - CONN_STRING=${CONN_STRING}
-            - ORACLE_PWD=${ORACLE_PWD}
-            - ORACLE_USER_PWD=${ORACLE_PWD}
+            CONN_STRING: ${CONN_STRING}
+            ORACLE_PWD: ${ORACLE_PWD:?Please provide a password for the Oracle DBA accounts}
+            ORACLE_USER_PWD: ${ORACLE_PWD:?Please provide a password for the ORDS administrative and runtime accounts}
+            DEBUG: "FALSE"
+            # ORACLE_SID: "ORCLCDB"     # Oracle 23ai Free Edition always uses FREE as CDB name and service name
+            # ORACLE_PDB: "ORCLPDB1"    # Oracle 23ai Free Edition always uses FREEPDB1 as PDB name and service name
         volumes:
-            - ords_config:/etc/ords/config
-            - ./apex:/opt/oracle/apex
+            - ords_config:/etc/ords/config   # this docker volume contains the ORDS config
+            - ./apex:/opt/oracle/apex        # use this volume mount for an automatic APEX installation
+            # - ./apex-images:/opt/oracle/apex/images
         ports:
-            - ${HOST_PORT}:8080
+            - ${HTTP_HOST_PORT}:8080   # ORDS http
+            - ${HTTPS_HOST_PORT}:8443  # ORDS https
+            # - 27017:27017              # Mongo DB API
         depends_on:
             oraclefree:
                 condition: service_healthy
+        healthcheck:
+            test: curl --noproxy "localhost" -f -k http://localhost:8080/ords/ || exit 1
+            interval: 300s     # Check every 5 minutes
+            timeout: 10s
+            retries: 5
         networks:
             - ora_app_network
 
 volumes:
     ora_db_vol26ai:
+        name: ora_db_vol26ai
     ords_config:
+        name: ords_config
 
 networks:
     ora_app_network:
